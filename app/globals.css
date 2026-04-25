@@ -2,26 +2,362 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html { scroll-behavior: smooth; }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply antialiased bg-white text-[#111111];
+  font-family: -apple-system, "Inter", "Segoe UI", sans-serif;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* ── keyframes ─────────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+@keyframes row-slide {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── animation helpers ─────────────────────────────────────── */
+.animate-fade-up     { animation: fade-up 0.7s cubic-bezier(.22,1,.36,1) both; }
+.animate-float       { animation: float 5s ease-in-out infinite; }
+.animate-marquee     { animation: marquee 28s linear infinite; }
+.animate-blink       { animation: blink 1s step-end infinite; }
+.animate-row-slide   { animation: row-slide 0.5s cubic-bezier(.22,1,.36,1) both; }
+
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+.delay-4 { animation-delay: 0.32s; }
+.delay-5 { animation-delay: 0.40s; }
+
+/* ── nav glass ──────────────────────────────────────────────── */
+.nav-glass {
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+}
+
+/* ── buttons ────────────────────────────────────────────────── */
+.btn-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #111111;
+  color: white;
+  font-weight: 600;
+  border-radius: 100px;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.btn-dark:hover {
+  background: #2d2d2d;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: #111111;
+  font-weight: 600;
+  border: 1.5px solid rgba(0,0,0,0.18);
+  border-radius: 100px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.btn-outline:hover {
+  border-color: #111111;
+  background: #f5f5f5;
+}
+
+.btn-purple {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #7c3aed;
+  color: white;
+  font-weight: 600;
+  border-radius: 100px;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.btn-purple:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(124,58,237,0.38);
+}
+
+/* ── feature section ────────────────────────────────────────── */
+.feature-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  padding: 100px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+@media (max-width: 768px) {
+  .feature-row { grid-template-columns: 1fr; gap: 48px; padding: 64px 0; }
+}
+
+/* ── mockup shell ───────────────────────────────────────────── */
+.mockup-shell {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.09), 0 4px 16px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   macOS-INSPIRED EFFECTS
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Aurora mesh background (macOS Sonoma/Sequoia wallpaper) ── */
+.aurora-bg {
+  background: #f8f8ff;
+  position: relative;
+}
+
+@keyframes aurora-drift-1 {
+  0%,100% { transform: translate(0px,   0px)  scale(1);    }
+  25%      { transform: translate(60px, -50px) scale(1.07); }
+  50%      { transform: translate(20px,  40px) scale(0.96); }
+  75%      { transform: translate(-40px,-20px) scale(1.03); }
+}
+@keyframes aurora-drift-2 {
+  0%,100% { transform: translate(0px,   0px)  scale(1);    }
+  33%      { transform: translate(-70px, 50px) scale(1.1);  }
+  66%      { transform: translate(50px, -60px) scale(0.93); }
+}
+@keyframes aurora-drift-3 {
+  0%,100% { transform: translate(0px,   0px)  scale(1);    }
+  40%      { transform: translate(40px,  70px) scale(1.06); }
+  80%      { transform: translate(-50px,-30px) scale(0.97); }
+}
+@keyframes aurora-drift-4 {
+  0%,100% { transform: translate(0px,   0px)  scale(1);    }
+  50%      { transform: translate(-30px, 60px) scale(1.04); }
+}
+
+.aurora-orb-1 { animation: aurora-drift-1 22s ease-in-out infinite; }
+.aurora-orb-2 { animation: aurora-drift-2 28s ease-in-out infinite; }
+.aurora-orb-3 { animation: aurora-drift-3 32s ease-in-out infinite; }
+.aurora-orb-4 { animation: aurora-drift-4 18s ease-in-out infinite; }
+
+/* ── macOS Liquid Glass material ─────────────────────────────── */
+/*    Replicates the frosted glass from macOS / iOS 26 Liquid Glass */
+.mac-glass {
+  background: linear-gradient(
+    158deg,
+    rgba(255,255,255,0.82) 0%,
+    rgba(255,255,255,0.55) 60%,
+    rgba(255,255,255,0.40) 100%
+  );
+  backdrop-filter: blur(44px) saturate(200%) brightness(108%) contrast(0.96);
+  -webkit-backdrop-filter: blur(44px) saturate(200%) brightness(108%) contrast(0.96);
+  /* Specular rim — bright top edge, subtle bottom shadow */
+  border: 1px solid rgba(255,255,255,0.92);
+  box-shadow:
+    inset 0  1.5px 0   rgba(255,255,255,1),
+    inset 0 -0.5px 0   rgba(0,0,0,0.06),
+    inset 1px 0 0      rgba(255,255,255,0.6),
+    inset -1px 0 0     rgba(255,255,255,0.3),
+    0  24px 64px rgba(0,0,0,0.09),
+    0   6px 20px rgba(0,0,0,0.06),
+    0   1px  3px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Grain noise — the texture that makes Apple glass feel tactile */
+.mac-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.032;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── macOS window shadow (multi-layer, realistic depth) ──────── */
+.mac-window-shadow {
+  box-shadow:
+    0 0 0 0.5px rgba(0,0,0,0.10),       /* tight outline */
+    0  2px  4px rgba(0,0,0,0.04),       /* contact shadow */
+    0  8px 20px rgba(0,0,0,0.07),       /* close shadow  */
+    0 24px 60px rgba(0,0,0,0.11),       /* mid shadow    */
+    0 48px 120px rgba(109,40,217,0.13), /* violet glow   */
+    0 64px 160px rgba(0,0,0,0.10);      /* ambient shadow */
+}
+
+/* ── Dock glow — the ambient light pool below macOS Dock icons ── */
+.dock-glow-wrap { position: relative; }
+.dock-glow-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: -28px;
+  left: 8%;
+  right: 8%;
+  height: 56px;
+  background: radial-gradient(ellipse 75% 100% at 50% 0%,
+    rgba(109,40,217,0.22) 0%, rgba(79,70,229,0.12) 40%, transparent 70%);
+  filter: blur(14px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Spring-physics perspective mockup ───────────────────────── */
+.mockup-perspective {
+  transform: perspective(1400px) rotateY(-12deg) rotateX(3deg);
+  transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
+.mockup-perspective:hover {
+  transform: perspective(1400px) rotateY(-5deg) rotateX(1deg) scale(1.018);
+}
+
+/* ── Float animations ────────────────────────────────────────── */
+@keyframes float-a {
+  0%,100% { transform: translateY(0px)   rotate(-1.5deg); }
+  50%      { transform: translateY(-12px) rotate(-1.5deg); }
+}
+@keyframes float-b {
+  0%,100% { transform: translateY(0px)   rotate(1.2deg); }
+  50%      { transform: translateY(-9px)  rotate(1.2deg); }
+}
+@keyframes float-c {
+  0%,100% { transform: translateY(0px); }
+  50%      { transform: translateY(-7px); }
+}
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.animate-float-a  { animation: float-a 4.2s ease-in-out infinite; }
+.animate-float-b  { animation: float-b 5.0s ease-in-out 0.9s infinite; }
+.animate-float-c  { animation: float-c 3.8s ease-in-out 0.4s infinite; }
+.animate-count-up { animation: count-up 0.7s cubic-bezier(.22,1,.36,1) 0.9s both; }
+
+/* ── Float-card (kept for non-glass fallback) ────────────────── */
+.float-card {
+  background: white;
+  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.05);
+  padding: 12px 16px;
+  position: absolute;
+  white-space: nowrap;
+}
+
+/* ── stat chip ─────────────────────────────────────────────── */
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f3ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6d28d9;
+}
+
+/* ── step number ────────────────────────────────────────────── */
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f5f3ff;
+  border: 2px solid #e9d5ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  color: #7c3aed;
+  flex-shrink: 0;
+}
+
+/* ── pricing card ───────────────────────────────────────────── */
+.price-card {
+  background: white;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.price-card:hover {
+  border-color: #c4b5fd;
+  box-shadow: 0 16px 48px rgba(109,40,217,0.1);
+  transform: translateY(-4px);
+}
+.price-card-pro {
+  background: #111111;
+  border-color: transparent;
+}
+.price-card-pro:hover {
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  border-color: transparent;
+}
+
+/* ── testimonial card ───────────────────────────────────────── */
+.quote-card {
+  background: white;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+  transition: box-shadow 0.25s, transform 0.25s;
+}
+.quote-card:hover {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+  transform: translateY(-3px);
+}
+
+/* ── tag ────────────────────────────────────────────────────── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 100px;
+  padding: 5px 12px;
+}
+
+/* ── Public form dynamic accent color ───────────────────────── */
+/* Set --form-accent and --form-accent-ring on the wrapper element */
+.form-input:focus {
+  outline: none;
+  border-color: var(--form-accent, #7c3aed);
+  box-shadow: 0 0 0 3px var(--form-accent-ring, rgba(124, 58, 237, 0.18));
 }
