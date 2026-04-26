@@ -335,7 +335,7 @@ export default function LandingPage() {
               </div>
 
               {/* ── Liquid Glass card: macOS notification ── */}
-              <div className="mac-glass animate-float-a absolute rounded-[18px] px-4 py-3"
+              <div className="mac-glass animate-float-a !absolute rounded-[18px] px-4 py-3"
                 style={{ top: 20, right: -28, zIndex: 20, whiteSpace: "nowrap" }}>
                 {/* z-index 1 so grain ::before doesn't cover content */}
                 <div className="relative z-[2] flex items-center gap-3">
@@ -356,7 +356,7 @@ export default function LandingPage() {
               </div>
 
               {/* ── Liquid Glass card: live sheet rows ── */}
-              <div className="mac-glass animate-float-b absolute rounded-[18px] p-3.5"
+              <div className="mac-glass animate-float-b !absolute rounded-[18px] p-3.5"
                 style={{ bottom: 36, left: -36, zIndex: 20, minWidth: 224 }}>
                 <div className="relative z-[2]">
                   <div className="flex items-center gap-2 mb-3">
@@ -386,7 +386,7 @@ export default function LandingPage() {
               </div>
 
               {/* ── Liquid Glass card: stat counter ── */}
-              <div className="mac-glass animate-float-c absolute rounded-[18px] px-4 py-3.5"
+              <div className="mac-glass animate-float-c !absolute rounded-[18px] px-4 py-3.5"
                 style={{ top: "42%", right: -40, zIndex: 20, whiteSpace: "nowrap" }}>
                 <div className="relative z-[2]">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">This month</p>
