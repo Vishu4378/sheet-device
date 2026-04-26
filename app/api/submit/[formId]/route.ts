@@ -26,6 +26,24 @@ export async function POST(
     return NextResponse.json({ success: true }); // silently reject
   }
 
+  const now = new Date();
+
+  // Response limit check
+  if (form.responseLimit != null && form.submissionCount >= form.responseLimit) {
+    return NextResponse.json(
+      { error: form.closedMessage || "This form is no longer accepting responses.", closed: true },
+      { status: 410 }
+    );
+  }
+
+  // Expiry date check
+  if (form.expiryDate && now > new Date(form.expiryDate)) {
+    return NextResponse.json(
+      { error: form.closedMessage || "This form is no longer accepting responses.", closed: true },
+      { status: 410 }
+    );
+  }
+
   // Plan limit check
   const user = await User.findById(form.userId);
   if (!user) {
@@ -33,7 +51,6 @@ export async function POST(
   }
 
   // Reset monthly count if needed
-  const now = new Date();
   const resetDate = new Date(user.submissionResetDate);
   if (
     now.getMonth() !== resetDate.getMonth() ||

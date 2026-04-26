@@ -1,6 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface FieldCondition {
+  fieldLabel: string;
+  operator: "equals" | "not_equals" | "contains" | "is_not_empty";
+  value: string;
+}
 
 interface Field {
   label: string;
@@ -10,6 +16,18 @@ interface Field {
   placeholder: string;
   helpText?: string;
   width?: "full" | "half";
+  condition?: FieldCondition;
+}
+
+function isVisible(condition: FieldCondition | undefined, values: Record<string, string>): boolean {
+  if (!condition?.fieldLabel) return true;
+  const cur = values[condition.fieldLabel] ?? "";
+  switch (condition.operator) {
+    case "equals":       return cur === condition.value;
+    case "not_equals":   return cur !== condition.value;
+    case "contains":     return cur.toLowerCase().includes(condition.value.toLowerCase());
+    case "is_not_empty": return cur.trim() !== "";
+  }
 }
 
 interface FormStyle {
@@ -42,10 +60,30 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export default function PublicFormClient({ form }: { form: FormDef }) {
+export default function PublicFormClient({ form, embed }: { form: FormDef; embed?: string }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/analytics/${form.formId}/view`, { method: "POST" }).catch(() => {});
+  }, [form.formId]);
+
+  // Notify parent (embed.js) of content height after every render.
+  // Must use body.scrollHeight, NOT documentElement.scrollHeight —
+  // the html element expands to fill the iframe's set height, so it always
+  // returns the iframe height rather than the actual content height.
+  useEffect(() => {
+    const send = () => {
+      window.parent.postMessage(
+        { type: "sheetform-resize", formId: form.formId, height: document.body.scrollHeight },
+        "*"
+      );
+    };
+    // rAF ensures measurement happens after the browser has painted
+    const id = requestAnimationFrame(send);
+    return () => cancelAnimationFrame(id);
+  }, [form.formId, status]);
 
   // Style resolution with safe defaults
   const accent      = form.formStyle?.accentColor  ?? "#7c3aed";
@@ -74,6 +112,36 @@ export default function PublicFormClient({ form }: { form: FormDef }) {
     "--form-accent-ring": hexToRgba(accent, 0.18),
   } as React.CSSProperties;
 
+  // Embed-aware layout — strip page chrome when inside an iframe
+  const isInline = embed === "inline";
+  const isDialog = embed === "dialog";
+  const isEmbedded = isInline || isDialog;
+
+  // Outer wrapper: standalone keeps full-page bg + centering; embeds strip it
+  const outerClass = isDialog
+    ? "bg-white"
+    : isInline
+    ? "px-4 py-8"
+    : `min-h-screen flex items-center justify-center px-4 py-12 ${pageBgClass}`;
+  const outerStyle: React.CSSProperties = isEmbedded
+    ? accentVars
+    : { ...pageBgStyle, ...accentVars };
+
+  // Inner card: dialog uses no card chrome — modal header + body provide the container
+  const cardClass = isDialog
+    ? "px-8 py-6 w-full"
+    : `bg-white rounded-2xl border border-gray-200 shadow-sm p-8 w-full ${widthClass}${isInline ? " mx-auto" : ""}`;
+
+  // Success screen variants
+  const successOuterClass = isDialog
+    ? "bg-white"
+    : isInline
+    ? "px-4 py-8"
+    : `min-h-screen flex items-center justify-center px-4 ${pageBgClass}`;
+  const successCardClass = isDialog
+    ? "px-8 py-10 w-full text-center"
+    : `bg-white rounded-2xl border border-gray-200 shadow-sm p-10 max-w-md w-full text-center${isInline ? " mx-auto" : ""}`;
+
   const set = (label: string, val: string) =>
     setValues((prev) => ({ ...prev, [label]: val }));
 
@@ -82,7 +150,13 @@ export default function PublicFormClient({ form }: { form: FormDef }) {
     setStatus("submitting");
     setErrorMsg("");
 
-    const payload = { ...values, company: "" };
+    const visibleLabels = new Set(
+      form.fields.filter((f) => isVisible(f.condition, values)).map((f) => f.label)
+    );
+    const payload = {
+      company: "",
+      ...Object.fromEntries(Object.entries(values).filter(([k]) => visibleLabels.has(k))),
+    };
 
     try {
       const res = await fetch(`/api/submit/${form.formId}`, {
@@ -106,11 +180,8 @@ export default function PublicFormClient({ form }: { form: FormDef }) {
 
   if (status === "success") {
     return (
-      <div
-        className={`min-h-screen flex items-center justify-center px-4 ${pageBgClass}`}
-        style={{ ...pageBgStyle, ...accentVars }}
-      >
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 max-w-md w-full text-center">
+      <div className={successOuterClass} style={outerStyle}>
+        <div className={successCardClass}>
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
             style={{ backgroundColor: hexToRgba(accent, 0.1) }}
@@ -138,11 +209,8 @@ export default function PublicFormClient({ form }: { form: FormDef }) {
   }
 
   return (
-    <div
-      className={`min-h-screen flex items-center justify-center px-4 py-12 ${pageBgClass}`}
-      style={{ ...pageBgStyle, ...accentVars }}
-    >
-      <div className={`bg-white rounded-2xl border border-gray-200 shadow-sm p-8 w-full ${widthClass}`}>
+    <div className={outerClass} style={outerStyle}>
+      <div className={cardClass}>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">{form.title}</h1>
         {form.description && (
           <p className="text-gray-500 text-sm mb-6 leading-relaxed">{form.description}</p>
@@ -163,6 +231,8 @@ export default function PublicFormClient({ form }: { form: FormDef }) {
           {/* 2-column grid; sections + full-width fields span both cols */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-5 mb-5">
             {form.fields.map((field, i) => {
+              if (!isVisible(field.condition, values)) return null;
+
               if (field.type === "section") {
                 return (
                   <div

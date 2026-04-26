@@ -30,6 +30,29 @@ export interface FormData {
   thankYouMessage: string;
   redirectUrl: string;
   formStyle: FormStyle;
+  sheetStyling: SheetStyling;
+  responseLimit: number | null;
+  expiryDate: string;
+  closedMessage: string;
+}
+
+export interface FieldCondition {
+  fieldLabel: string;
+  operator: "equals" | "not_equals" | "contains" | "is_not_empty";
+  value: string;
+}
+
+export interface SheetStyling {
+  headerBgColor: string;
+  headerTextColor: string;
+  boldHeader: boolean;
+  headerItalic: boolean;
+  headerAlignment: "LEFT" | "CENTER" | "RIGHT";
+  freezeHeader: boolean;
+  enableBanding: boolean;
+  oddRowColor: string;
+  evenRowColor: string;
+  autoResizeColumns: boolean;
 }
 
 export interface Field {
@@ -41,6 +64,7 @@ export interface Field {
   placeholder: string;
   helpText: string;
   width: "full" | "half";
+  condition?: FieldCondition;
 }
 
 const DEFAULT_FORM_STYLE: FormStyle = {
@@ -48,6 +72,19 @@ const DEFAULT_FORM_STYLE: FormStyle = {
   bgStyle: "gray",
   buttonStyle: "filled",
   formWidth: "standard",
+};
+
+const DEFAULT_SHEET_STYLING: SheetStyling = {
+  headerBgColor: "#7c3aed",
+  headerTextColor: "#ffffff",
+  boldHeader: true,
+  headerItalic: false,
+  headerAlignment: "LEFT",
+  freezeHeader: true,
+  enableBanding: true,
+  oddRowColor: "#faf5ff",
+  evenRowColor: "#ffffff",
+  autoResizeColumns: true,
 };
 
 const defaultFormData: FormData = {
@@ -62,6 +99,10 @@ const defaultFormData: FormData = {
   thankYouMessage: "Thank you for your submission!",
   redirectUrl: "",
   formStyle: { ...DEFAULT_FORM_STYLE },
+  sheetStyling: { ...DEFAULT_SHEET_STYLING },
+  responseLimit: null,
+  expiryDate: "",
+  closedMessage: "This form is no longer accepting responses.",
 };
 
 function BuilderPageInner() {
@@ -102,6 +143,9 @@ function BuilderPageInner() {
             placeholder: field.placeholder ?? "",
             helpText: field.helpText ?? "",
             width: field.width ?? "full",
+            condition: field.condition?.fieldLabel
+              ? { fieldLabel: field.condition.fieldLabel, operator: field.condition.operator ?? "equals", value: field.condition.value ?? "" }
+              : undefined,
           })),
           title: f.title,
           description: f.description || "",
@@ -114,6 +158,21 @@ function BuilderPageInner() {
             buttonStyle: f.formStyle?.buttonStyle ?? DEFAULT_FORM_STYLE.buttonStyle,
             formWidth: f.formStyle?.formWidth ?? DEFAULT_FORM_STYLE.formWidth,
           },
+          sheetStyling: {
+            headerBgColor:    f.styling?.headerBgColor    ?? DEFAULT_SHEET_STYLING.headerBgColor,
+            headerTextColor:  f.styling?.headerTextColor  ?? DEFAULT_SHEET_STYLING.headerTextColor,
+            boldHeader:       f.styling?.boldHeader       ?? DEFAULT_SHEET_STYLING.boldHeader,
+            headerItalic:     f.styling?.headerItalic     ?? DEFAULT_SHEET_STYLING.headerItalic,
+            headerAlignment:  f.styling?.headerAlignment  ?? DEFAULT_SHEET_STYLING.headerAlignment,
+            freezeHeader:     f.styling?.freezeHeader     ?? DEFAULT_SHEET_STYLING.freezeHeader,
+            enableBanding:    f.styling?.enableBanding    ?? DEFAULT_SHEET_STYLING.enableBanding,
+            oddRowColor:      f.styling?.oddRowColor      ?? DEFAULT_SHEET_STYLING.oddRowColor,
+            evenRowColor:     f.styling?.evenRowColor     ?? DEFAULT_SHEET_STYLING.evenRowColor,
+            autoResizeColumns: f.styling?.autoResizeColumns ?? DEFAULT_SHEET_STYLING.autoResizeColumns,
+          },
+          responseLimit: f.responseLimit ?? null,
+          expiryDate: f.expiryDate ? new Date(f.expiryDate).toISOString().slice(0, 16) : "",
+          closedMessage: f.closedMessage || "This form is no longer accepting responses.",
         });
         setSavedFormId(editFormId);
       })

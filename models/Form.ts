@@ -9,6 +9,7 @@ export interface IField {
   placeholder?: string;
   helpText?: string;
   width?: "full" | "half";
+  condition?: IFieldCondition;
 }
 
 export interface IStyling {
@@ -31,6 +32,12 @@ export interface IFormStyle {
   formWidth: "narrow" | "standard" | "wide";
 }
 
+export interface IFieldCondition {
+  fieldLabel: string;
+  operator: "equals" | "not_equals" | "contains" | "is_not_empty";
+  value: string;
+}
+
 export interface IForm extends Document {
   userId: mongoose.Types.ObjectId;
   title: string;
@@ -47,7 +54,11 @@ export interface IForm extends Document {
   formStyle?: IFormStyle;
   isActive: boolean;
   submissionCount: number;
+  viewCount: number;
   createdAt: Date;
+  responseLimit?: number | null;
+  expiryDate?: Date | null;
+  closedMessage?: string;
 }
 
 const FieldSchema = new Schema<IField>({
@@ -63,6 +74,11 @@ const FieldSchema = new Schema<IField>({
   placeholder: String,
   helpText: String,
   width: { type: String, enum: ["full", "half"], default: "full" },
+  condition: {
+    fieldLabel: { type: String, default: "" },
+    operator:   { type: String, enum: ["equals", "not_equals", "contains", "is_not_empty"], default: "equals" },
+    value:      { type: String, default: "" },
+  },
 });
 
 const FormSchema = new Schema<IForm>({
@@ -97,7 +113,11 @@ const FormSchema = new Schema<IForm>({
   },
   isActive: { type: Boolean, default: true },
   submissionCount: { type: Number, default: 0 },
+  viewCount: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
+  responseLimit: { type: Number, default: null },
+  expiryDate: { type: Date, default: null },
+  closedMessage: { type: String, default: "This form is no longer accepting responses." },
 });
 
 export const Form = mongoose.models.Form || mongoose.model<IForm>("Form", FormSchema);

@@ -22,23 +22,41 @@ export async function GET(
   if (!form) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { searchParams } = new URL(req.url);
+  const isExport = searchParams.get("export") === "1";
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const limit = 50;
-  const skip = (page - 1) * limit;
+  const since = searchParams.get("since");
 
-  const [submissions, total] = await Promise.all([
-    Submission.find({ formId: params.formId })
-      .sort({ submittedAt: -1 })
-      .skip(skip)
-      .limit(limit),
-    Submission.countDocuments({ formId: params.formId }),
+  const limit = isExport ? 10_000 : 50;
+  const skip = isExport ? 0 : (page - 1) * limit;
+
+  const baseFilter: Record<string, unknown> = { formId: params.formId };
+  if (since) baseFilter.submittedAt = { $gte: new Date(since) };
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOf7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const [submissions, total, todayCount, weekCount] = await Promise.all([
+    Submission.find(baseFilter).sort({ submittedAt: -1 }).skip(skip).limit(limit),
+    Submission.countDocuments(baseFilter),
+    Submission.countDocuments({ formId: params.formId, submittedAt: { $gte: startOfToday } }),
+    Submission.countDocuments({ formId: params.formId, submittedAt: { $gte: startOf7Days } }),
   ]);
+
+  const fields = (form.fields as Array<{ type: string; label: string }>)
+    .filter((f) => f.type !== "section")
+    .map((f) => f.label);
 
   return NextResponse.json({
     submissions,
     total,
-    page,
-    pages: Math.ceil(total / limit),
-    fields: form.fields.map((f: { label: string }) => f.label),
+    todayCount,
+    weekCount,
+    page: isExport ? 1 : page,
+    pages: isExport ? 1 : Math.ceil(total / limit),
+    fields,
+    formTitle: form.title,
+    sheetName: form.sheetName,
+    sheetId: form.sheetId,
   });
 }

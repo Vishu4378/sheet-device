@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { Form } from "@/models/Form";
 import { nanoid } from "@/lib/nanoid";
+import { applySheetFormatting } from "@/lib/google";
 
 export async function GET() {
   const session = await getSession();
@@ -56,8 +57,22 @@ export async function POST(req: NextRequest) {
     redirectUrl: body.redirectUrl,
     thankYouMessage: body.thankYouMessage || "Thank you for your submission!",
     formStyle: body.formStyle,
+    styling: body.sheetStyling,
     isActive: true,
+    responseLimit: body.responseLimit ?? null,
+    expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
+    closedMessage: body.closedMessage || "This form is no longer accepting responses.",
   });
+
+  // Apply sheet formatting fire-and-forget — never blocks the response
+  if (body.sheetId && body.sheetName) {
+    applySheetFormatting(
+      session.user.email!,
+      body.sheetId,
+      body.sheetName,
+      body.sheetStyling ?? {}
+    ).catch(() => {});
+  }
 
   return NextResponse.json({ form }, { status: 201 });
 }

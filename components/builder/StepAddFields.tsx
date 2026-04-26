@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FormData, Field } from "@/app/builder/page";
+import { FormData, Field, FieldCondition } from "@/app/builder/page";
 
 interface Props {
   formData: FormData;
@@ -36,6 +36,95 @@ const defaultField = (): Field => ({
   helpText: "",
   width: "full",
 });
+
+// ── Condition editor sub-component ─────────────────────────────────────────
+
+interface ConditionEditorProps {
+  condition: FieldCondition;
+  conditionableFields: Field[];
+  targetField: Field | undefined;
+  onPatch: (patch: Partial<FieldCondition>) => void;
+  onChangeField: (fieldLabel: string) => void;
+}
+
+function ConditionEditor({
+  condition,
+  conditionableFields,
+  targetField,
+  onPatch,
+  onChangeField,
+}: ConditionEditorProps) {
+  return (
+    <div className="bg-violet-50 rounded-xl p-4 space-y-3 border border-violet-100">
+      <p className="text-[11px] font-bold text-violet-600 uppercase tracking-wider">Show when…</p>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-gray-500 font-medium">Field</label>
+        <select
+          value={condition.fieldLabel}
+          onChange={(e) => onChangeField(e.target.value)}
+          className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white"
+        >
+          {conditionableFields.map((f) => (
+            <option key={f.label} value={f.label}>{f.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-gray-500 font-medium">Condition</label>
+        <select
+          value={condition.operator}
+          onChange={(e) => onPatch({ operator: e.target.value as FieldCondition["operator"] })}
+          className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white"
+        >
+          <option value="equals">is exactly</option>
+          <option value="not_equals">is not</option>
+          <option value="contains">contains</option>
+          <option value="is_not_empty">is not empty</option>
+        </select>
+      </div>
+
+      {condition.operator !== "is_not_empty" && (
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500 font-medium">Value</label>
+          {targetField?.type === "dropdown" && targetField.options.length > 0 ? (
+            <select
+              value={condition.value}
+              onChange={(e) => onPatch({ value: e.target.value })}
+              className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white"
+            >
+              <option value="">Select…</option>
+              {targetField.options.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          ) : targetField?.type === "checkbox" ? (
+            <select
+              value={condition.value}
+              onChange={(e) => onPatch({ value: e.target.value })}
+              className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white"
+            >
+              <option value="">Select…</option>
+              <option value="true">Checked</option>
+              <option value="false">Unchecked</option>
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={condition.value}
+              onChange={(e) => onPatch({ value: e.target.value })}
+              placeholder="Enter value…"
+              className="w-full border border-violet-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ──────────────────────────────────────────────────────────
 
 export default function StepAddFields({ formData, update, onNext, onBack }: Props) {
   const [modalOpen, setModalOpen]     = useState(false);
@@ -81,7 +170,13 @@ export default function StepAddFields({ formData, update, onNext, onBack }: Prop
   };
 
   const removeField = (i: number) => {
-    update({ fields: fields.filter((_, idx) => idx !== i) });
+    const deletedLabel = fields[i].label;
+    const cleaned = fields
+      .filter((_, idx) => idx !== i)
+      .map((f) =>
+        f.condition?.fieldLabel === deletedLabel ? { ...f, condition: undefined } : f
+      );
+    update({ fields: cleaned });
   };
 
   const addOption = () => {
@@ -132,6 +227,48 @@ export default function StepAddFields({ formData, update, onNext, onBack }: Prop
 
   const isSection = draft?.type === "section";
 
+  // Non-section fields with labels, excluding the field being edited
+  const conditionableFields = fields.filter(
+    (f, i) => f.type !== "section" && i !== editingIdx && f.label.trim() !== ""
+  );
+
+  const conditionEnabled = !!draft?.condition?.fieldLabel;
+
+  const conditionTargetField = conditionableFields.find(
+    (f) => f.label === draft?.condition?.fieldLabel
+  );
+
+  const enableCondition = () => {
+    if (!draft) return;
+    const first = conditionableFields[0];
+    setDraft({
+      ...draft,
+      condition: { fieldLabel: first?.label ?? "", operator: "equals", value: "" },
+    });
+  };
+
+  const disableCondition = () => {
+    if (!draft) return;
+    setDraft({ ...draft, condition: undefined });
+  };
+
+  const setConditionField = (fieldLabel: string) => {
+    if (!draft) return;
+    setDraft({
+      ...draft,
+      condition: {
+        fieldLabel,
+        operator: draft.condition?.operator ?? "equals",
+        value: "",
+      },
+    });
+  };
+
+  const patchCondition = (patch: Partial<FieldCondition>) => {
+    if (!draft?.condition) return;
+    setDraft({ ...draft, condition: { ...draft.condition, ...patch } });
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -162,9 +299,9 @@ export default function StepAddFields({ formData, update, onNext, onBack }: Prop
         )}
 
         {fields.map((f, i) => {
-          const typeInfo  = getTypeInfo(f.type);
-          const isDragging  = dragIndex === i;
-          const isDragOver  = dragOverIndex === i && dragIndex !== i;
+          const typeInfo   = getTypeInfo(f.type);
+          const isDragging = dragIndex === i;
+          const isDragOver = dragOverIndex === i && dragIndex !== i;
 
           if (f.type === "section") {
             return (
@@ -199,6 +336,11 @@ export default function StepAddFields({ formData, update, onNext, onBack }: Prop
                 <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full flex-shrink-0">
                   section
                 </span>
+                {f.condition?.fieldLabel && (
+                  <span className="text-xs text-violet-500 bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-full flex-shrink-0">
+                    conditional
+                  </span>
+                )}
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                   <button onClick={() => openEdit(i)} className="w-8 h-8 rounded-lg hover:bg-violet-50 text-gray-400 hover:text-violet-600 transition-colors flex items-center justify-center">
                     <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M8.5 1.5L11 4L4.5 10.5H2V8L8.5 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>
@@ -267,6 +409,14 @@ export default function StepAddFields({ formData, update, onNext, onBack }: Prop
                     <>
                       <span className="text-gray-200">·</span>
                       <span className="text-xs text-gray-400 truncate max-w-[120px]">{f.helpText}</span>
+                    </>
+                  )}
+                  {f.condition?.fieldLabel && (
+                    <>
+                      <span className="text-gray-200">·</span>
+                      <span className="text-xs text-violet-500 bg-violet-50 px-1.5 py-0.5 rounded font-medium leading-none flex-shrink-0">
+                        conditional
+                      </span>
                     </>
                   )}
                 </div>
@@ -362,19 +512,51 @@ export default function StepAddFields({ formData, update, onNext, onBack }: Prop
                 />
               </div>
 
-              {/* Section subtitle OR regular fields */}
+              {/* Section branch */}
               {isSection ? (
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    Subtitle <span className="text-gray-400 normal-case font-normal">optional</span>
-                  </label>
-                  <input
-                    value={draft.placeholder}
-                    onChange={(e) => setDraft({ ...draft, placeholder: e.target.value })}
-                    placeholder="Short description for this section"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400"
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      Subtitle <span className="text-gray-400 normal-case font-normal">optional</span>
+                    </label>
+                    <input
+                      value={draft.placeholder}
+                      onChange={(e) => setDraft({ ...draft, placeholder: e.target.value })}
+                      placeholder="Short description for this section"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400"
+                    />
+                  </div>
+
+                  {/* Visibility — sections */}
+                  {conditionableFields.length > 0 && (
+                    <div className="pt-1 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700">Visibility</p>
+                          <p className="text-xs text-gray-400 mt-0.5">Show this section conditionally</p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={conditionEnabled}
+                          onClick={() => conditionEnabled ? disableCondition() : enableCondition()}
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${conditionEnabled ? "bg-violet-600" : "bg-gray-200"}`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${conditionEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                        </button>
+                      </div>
+                      {conditionEnabled && draft.condition && (
+                        <ConditionEditor
+                          condition={draft.condition}
+                          conditionableFields={conditionableFields}
+                          targetField={conditionTargetField}
+                          onPatch={patchCondition}
+                          onChangeField={setConditionField}
+                        />
+                      )}
+                    </div>
+                  )}
+                </>
               ) : (
                 <>
                   {/* Sheet column */}
@@ -502,6 +684,36 @@ export default function StepAddFields({ formData, update, onNext, onBack }: Prop
                     </button>
                     <span className="text-sm text-gray-700 font-medium">Required field</span>
                   </label>
+
+                  {/* Visibility */}
+                  {conditionableFields.length > 0 && (
+                    <div className="pt-1 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700">Visibility</p>
+                          <p className="text-xs text-gray-400 mt-0.5">Show this field conditionally</p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={conditionEnabled}
+                          onClick={() => conditionEnabled ? disableCondition() : enableCondition()}
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${conditionEnabled ? "bg-violet-600" : "bg-gray-200"}`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${conditionEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                        </button>
+                      </div>
+                      {conditionEnabled && draft.condition && (
+                        <ConditionEditor
+                          condition={draft.condition}
+                          conditionableFields={conditionableFields}
+                          targetField={conditionTargetField}
+                          onPatch={patchCondition}
+                          onChangeField={setConditionField}
+                        />
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </div>
